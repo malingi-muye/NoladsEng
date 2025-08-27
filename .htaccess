@@ -1,0 +1,10 @@
+RewriteEngine On
+RewriteBase /
+
+# Handle requests to /api/* by rewriting to php-api/api/* 
+RewriteRule ^api/(.*)$ php-api/api/$1 [QSA,L]
+
+# Fallback for SPA frontend routes
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ /index.html [QSA,L]
