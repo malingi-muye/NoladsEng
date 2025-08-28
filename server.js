@@ -1,6 +1,14 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+require('dotenv').config();
+
+// Import database and models
+const { initializeDatabase } = require('./config/database');
+const Service = require('./models/Service');
+const Product = require('./models/Product');
+const Company = require('./models/Company');
+const { seedDatabase } = require('./scripts/seedData');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,191 +18,189 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('.'));
 
-// Mock data
-const mockServices = [
-  {
-    id: 1,
-    title: "Power Systems Design",
-    description: "Custom electrical power distribution systems for industrial applications",
-    category: "power",
-    featured: true,
-    active: true,
-    image: "/slider/slide1.jpg"
-  },
-  {
-    id: 2,
-    title: "Safety & Compliance",
-    description: "Electrical safety audits and compliance certification services",
-    category: "safety",
-    featured: true,
-    active: true,
-    image: "/slider/slide2.jpg"
-  },
-  {
-    id: 3,
-    title: "Industrial Automation",
-    description: "Automated control systems and process optimization",
-    category: "automation",
-    featured: true,
-    active: true,
-    image: "/slider/slide3.jpg"
-  },
-  {
-    id: 4,
-    title: "Performance Monitoring",
-    description: "Real-time system monitoring and predictive maintenance",
-    category: "monitoring",
-    featured: true,
-    active: true,
-    image: "/slider/slide4.jpg"
+// Database initialization
+async function initializeApp() {
+  try {
+    await initializeDatabase();
+    await seedDatabase();
+    console.log('✅ Application initialized successfully');
+  } catch (error) {
+    console.error('❌ Failed to initialize application:', error);
+    process.exit(1);
   }
-];
+}
 
-const mockProducts = [
-  {
-    id: 1,
-    name: "Power Distribution Panel",
-    description: "High-capacity electrical distribution panel for industrial use",
-    category: "panels",
-    featured: true,
-    price: 2500,
-    image: "/slider/slide1.jpg"
-  },
-  {
-    id: 2,
-    name: "Safety Monitoring System",
-    description: "Advanced safety monitoring and alert system",
-    category: "safety",
-    featured: true,
-    price: 3200,
-    image: "/slider/slide2.jpg"
-  },
-  {
-    id: 3,
-    name: "Automation Controller",
-    description: "Industrial automation control unit with IoT capabilities",
-    category: "automation",
-    featured: true,
-    price: 4500,
-    image: "/slider/slide3.jpg"
-  },
-  {
-    id: 4,
-    name: "Performance Analytics Software",
-    description: "Real-time performance monitoring and analytics platform",
-    category: "software",
-    featured: true,
-    price: 1800,
-    image: "/slider/slide4.jpg"
-  }
-];
+// Error handling middleware
+function asyncHandler(fn) {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
 
-const mockCompanyStats = {
-  projects_completed: 150,
-  clients_served: 85,
-  years_experience: 12,
-  safety_certifications: 8
-};
+function errorHandler(err, req, res, next) {
+  console.error('API Error:', err);
+  res.status(500).json({
+    success: false,
+    error: 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+  });
+}
 
 // API Routes
-app.get('/api/services', (req, res) => {
-  const { featured, active, limit } = req.query;
-  let services = [...mockServices];
-  
-  if (featured === 'true') {
-    services = services.filter(s => s.featured);
-  }
-  
-  if (active === 'true') {
-    services = services.filter(s => s.active);
-  }
-  
-  if (limit) {
-    services = services.slice(0, parseInt(limit));
-  }
-  
+app.get('/api/services', asyncHandler(async (req, res) => {
+  const { featured, active, limit, page } = req.query;
+
+  const options = {};
+  if (featured === 'true') options.featured = true;
+  if (active === 'true') options.active = true;
+  if (limit) options.limit = parseInt(limit);
+  if (page) options.page = parseInt(page);
+
+  const services = await Service.getAll(options);
+  const total = await Service.getCount(options);
+
+  res.json({
+    success: true,
+    data: services,
+    total
+  });
+}));
+
+app.get('/api/services/featured', asyncHandler(async (req, res) => {
+  const { limit } = req.query;
+
+  const services = await Service.getFeatured(limit ? parseInt(limit) : null);
+
   res.json({
     success: true,
     data: services,
     total: services.length
   });
-});
+}));
 
-app.get('/api/services/featured', (req, res) => {
-  const { limit } = req.query;
-  let services = mockServices.filter(s => s.featured);
-  
-  if (limit) {
-    services = services.slice(0, parseInt(limit));
-  }
-  
+app.get('/api/products', asyncHandler(async (req, res) => {
+  const { featured, limit, page, category } = req.query;
+
+  const options = {};
+  if (featured === 'true') options.featured = true;
+  if (limit) options.limit = parseInt(limit);
+  if (page) options.page = parseInt(page);
+  if (category) options.category = category;
+
+  const products = await Product.getAll(options);
+  const total = await Product.getCount(options);
+
   res.json({
     success: true,
-    data: services,
-    total: services.length
+    data: products,
+    total
   });
-});
+}));
 
-app.get('/api/products', (req, res) => {
-  const { featured, limit } = req.query;
-  let products = [...mockProducts];
-  
-  if (featured === 'true') {
-    products = products.filter(p => p.featured);
-  }
-  
-  if (limit) {
-    products = products.slice(0, parseInt(limit));
-  }
-  
+app.get('/api/products/featured', asyncHandler(async (req, res) => {
+  const { limit } = req.query;
+
+  const products = await Product.getFeatured(limit ? parseInt(limit) : null);
+
   res.json({
     success: true,
     data: products,
     total: products.length
   });
-});
+}));
 
-app.get('/api/products/featured', (req, res) => {
-  const { limit } = req.query;
-  let products = mockProducts.filter(p => p.featured);
-  
-  if (limit) {
-    products = products.slice(0, parseInt(limit));
+app.get('/api/products/categories', asyncHandler(async (req, res) => {
+  const categories = await Product.getCategories();
+
+  res.json({
+    success: true,
+    data: categories
+  });
+}));
+
+app.get('/api/company/stats', asyncHandler(async (req, res) => {
+  const stats = await Company.getStats();
+
+  res.json({
+    success: true,
+    data: stats
+  });
+}));
+
+app.get('/api/company/info', asyncHandler(async (req, res) => {
+  const info = await Company.getInfo();
+
+  if (!info) {
+    return res.status(404).json({
+      success: false,
+      error: 'Company information not found'
+    });
   }
-  
-  res.json({
-    success: true,
-    data: products,
-    total: products.length
-  });
-});
 
-app.get('/api/company/stats', (req, res) => {
-  res.json({
-    success: true,
-    data: mockCompanyStats
-  });
-});
+  // Parse specialties JSON if it's a string
+  if (typeof info.specialties === 'string') {
+    info.specialties = JSON.parse(info.specialties);
+  }
 
-app.get('/api/company/info', (req, res) => {
   res.json({
     success: true,
-    data: {
-      name: "Nolads Engineering",
-      description: "Leading electrical engineering services for industrial applications",
-      established: 2012,
-      specialties: ["Power Systems", "Safety Solutions", "Automation", "Performance Monitoring"]
-    }
+    data: info
   });
-});
+}));
+
+// Additional API endpoints
+app.get('/api/services/:id', asyncHandler(async (req, res) => {
+  const service = await Service.getById(req.params.id);
+
+  if (!service) {
+    return res.status(404).json({
+      success: false,
+      error: 'Service not found'
+    });
+  }
+
+  res.json({
+    success: true,
+    data: service
+  });
+}));
+
+app.get('/api/products/:id', asyncHandler(async (req, res) => {
+  const product = await Product.getById(req.params.id);
+
+  if (!product) {
+    return res.status(404).json({
+      success: false,
+      error: 'Product not found'
+    });
+  }
+
+  res.json({
+    success: true,
+    data: product
+  });
+}));
+
+// Error handling middleware
+app.use(errorHandler);
 
 // Catch-all for SPA routing
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Frontend: http://localhost:${PORT}`);
-  console.log(`API: http://localhost:${PORT}/api`);
+// Initialize and start server
+async function startServer() {
+  await initializeApp();
+
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📱 Frontend: http://localhost:${PORT}`);
+    console.log(`🔌 API: http://localhost:${PORT}/api`);
+  });
+}
+
+startServer().catch(error => {
+  console.error('❌ Failed to start server:', error);
+  process.exit(1);
 });
