@@ -159,28 +159,26 @@ const ModernHeroSection: React.FC = () => {
           </motion.p>
 
           {/* Achievements List */}
-          <motion.div 
+          <motion.div
             variants={itemVariants}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto"
           >
             {achievements.map((achievement, index) => {
               const Icon = achievement.icon
-              let displayMetric = achievement.metric
-              
-              // Use real stats if available
-              if (stats) {
+
+              // Get display metric based on stats
+              const displayMetric = stats ? (() => {
                 switch (achievement.label) {
                   case 'Projects':
-                    displayMetric = `${stats.projects_completed}+`
-                    break
+                    return `${stats.projects_completed}+`
                   case 'Years':
-                    displayMetric = `${stats.years_experience}+`
-                    break
+                    return `${stats.years_experience}+`
                   case 'Clients':
-                    displayMetric = `${stats.clients_served}+`
-                    break
+                    return `${stats.clients_served}+`
+                  default:
+                    return achievement.metric
                 }
-              }
+              })() : achievement.metric
               
               return (
                 <motion.div
