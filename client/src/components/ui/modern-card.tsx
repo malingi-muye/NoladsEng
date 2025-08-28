@@ -8,7 +8,7 @@ const ModernCard = React.forwardRef<
     hover?: boolean
     gradient?: boolean
   }
->(({ className, hover = true, gradient = false, ...props }, ref) => (
+>(({ className, hover = true, gradient = false, children, ...props }, ref) => (
   <motion.div
     ref={ref}
     className={cn(
@@ -18,8 +18,11 @@ const ModernCard = React.forwardRef<
     )}
     whileHover={hover ? { y: -4, scale: 1.02 } : {}}
     transition={{ type: "spring", stiffness: 300, damping: 20 }}
-    {...props}
-  />
+  >
+    <div {...props}>
+      {children}
+    </div>
+  </motion.div>
 ))
 ModernCard.displayName = "ModernCard"
 

@@ -202,7 +202,7 @@ const ModernHeroSection: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-sm text-blue-100">
-                    {achievement.text}
+                    {achievement.text.replace(achievement.metric, displayMetric)}
                   </div>
                 </motion.div>
               )
