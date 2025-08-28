@@ -103,7 +103,7 @@ const Index: React.FC = () => {
               viewport={{ once: true }}
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12"
             >
-              {featuredServices.map((service, index) => (
+              {featuredServices.map((service) => (
                 <motion.div key={service.id} variants={itemVariants}>
                   <Link to={`/services/${service.id}`}>
                     <ServiceCard service={service} />
@@ -173,7 +173,7 @@ const Index: React.FC = () => {
               viewport={{ once: true }}
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12"
             >
-              {featuredProducts.map((product, index) => (
+              {featuredProducts.map((product) => (
                 <motion.div key={product.id} variants={itemVariants}>
                   <Link to={`/products/${product.id}`}>
                     <ProductCard product={product} />
